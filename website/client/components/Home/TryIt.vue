@@ -63,7 +63,7 @@
               @click="handleReset"
               type="button"
             >
-              <RotateCcw :size="20" />
+              <RotateCcw :size="20" :class="{ 'rotating': isResetting }" />
             </button>
             <div class="tooltip-content">
               Reset all options to default values
@@ -101,7 +101,7 @@
 
 <script setup lang="ts">
 import { FolderArchive, FolderOpen, Link2, RotateCcw } from 'lucide-vue-next';
-import { computed, nextTick, onMounted, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { usePackRequest } from '../../composables/usePackRequest';
 import { parseUrlParameters, updateUrlParameters } from '../../utils/urlParams';
 import { isValidRemoteValue } from '../utils/validation';
@@ -170,6 +170,9 @@ const shouldShowReset = computed(() => {
   return false;
 });
 
+// Animation state for reset button
+const isResetting = ref(false);
+
 async function handleSubmit() {
   // Update URL parameters before submitting
   const urlParamsToUpdate: Record<string, unknown> = {};
@@ -203,11 +206,19 @@ function handleKeydown(event: KeyboardEvent) {
 }
 
 function handleReset() {
+  // Start animation
+  isResetting.value = true;
+
   resetOptions();
   inputUrl.value = '';
 
   // Clear URL parameters
   updateUrlParameters({});
+
+  // Stop animation after it completes (360deg rotation takes about 0.5s)
+  setTimeout(() => {
+    isResetting.value = false;
+  }, 500);
 }
 
 // Handle URL parameters when component mounts
@@ -398,5 +409,18 @@ onMounted(() => {
   border-width: 8px;
   border-style: solid;
   border-color: #333 transparent transparent transparent;
+}
+
+.rotating {
+  animation: spin 0.5s ease-in-out;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>
