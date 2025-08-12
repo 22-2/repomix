@@ -189,7 +189,16 @@ async function handleSubmit() {
       if (typeof value === 'string' && value.trim() === '' && defaultValue === '') {
         continue; // Skip empty strings that match default empty strings
       }
-      urlParamsToUpdate[key] = value;
+      
+      // Map internal option names to URL parameter names
+      let urlParamKey = key;
+      if (key === 'includePatterns') {
+        urlParamKey = 'include';
+      } else if (key === 'ignorePatterns') {
+        urlParamKey = 'ignore';
+      }
+      
+      urlParamsToUpdate[urlParamKey] = value;
     }
   }
 
