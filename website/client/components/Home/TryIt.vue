@@ -63,7 +63,7 @@
               @click="handleReset"
               type="button"
             >
-              <RotateCcw :size="20" :class="{ 'rotating': isResetting }" />
+              <RotateCcw :size="20" />
             </button>
             <div class="tooltip-content">
               Reset all options to default values
@@ -147,10 +147,6 @@ const shouldShowReset = computed(() => {
     return false;
   }
 
-  // Keep showing during animation even if values are reset
-  if (isResetting.value) {
-    return true;
-  }
 
   // Show if there's input URL
   if (inputUrl.value && inputUrl.value.trim() !== '') {
@@ -175,8 +171,6 @@ const shouldShowReset = computed(() => {
   return false;
 });
 
-// Animation state for reset button
-const isResetting = ref(false);
 
 async function handleSubmit() {
   // Update URL parameters before submitting
@@ -211,19 +205,11 @@ function handleKeydown(event: KeyboardEvent) {
 }
 
 function handleReset() {
-  // Start animation
-  isResetting.value = true;
-
   resetOptions();
   inputUrl.value = '';
 
   // Clear URL parameters
   updateUrlParameters({});
-
-  // Stop animation after it completes (360deg rotation takes about 0.3s)
-  setTimeout(() => {
-    isResetting.value = false;
-  }, 300);
 }
 
 // Handle URL parameters when component mounts
@@ -416,16 +402,4 @@ onMounted(() => {
   border-color: #333 transparent transparent transparent;
 }
 
-.rotating {
-  animation: spin 0.3s ease-in-out;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
 </style>
