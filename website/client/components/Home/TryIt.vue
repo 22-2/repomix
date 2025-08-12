@@ -147,6 +147,11 @@ const shouldShowReset = computed(() => {
     return false;
   }
 
+  // Keep showing during animation even if values are reset
+  if (isResetting.value) {
+    return true;
+  }
+
   // Show if there's input URL
   if (inputUrl.value && inputUrl.value.trim() !== '') {
     return true;
@@ -215,10 +220,10 @@ function handleReset() {
   // Clear URL parameters
   updateUrlParameters({});
 
-  // Stop animation after it completes (360deg rotation takes about 0.5s)
+  // Stop animation after it completes (360deg rotation takes about 0.3s)
   setTimeout(() => {
     isResetting.value = false;
-  }, 500);
+  }, 300);
 }
 
 // Handle URL parameters when component mounts
@@ -412,7 +417,7 @@ onMounted(() => {
 }
 
 .rotating {
-  animation: spin 0.5s ease-in-out;
+  animation: spin 0.3s ease-in-out;
 }
 
 @keyframes spin {
