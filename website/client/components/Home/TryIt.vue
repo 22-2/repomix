@@ -55,7 +55,7 @@
             :isValid="isSubmitValid"
           />
           <div
-            v-if="hasExecuted"
+            v-if="shouldShowReset"
             class="tooltip-container"
           >
             <button
@@ -101,7 +101,7 @@
 
 <script setup lang="ts">
 import { FolderArchive, FolderOpen, Link2, RotateCcw } from 'lucide-vue-next';
-import { nextTick, onMounted, watch } from 'vue';
+import { computed, nextTick, onMounted, watch } from 'vue';
 import { usePackRequest } from '../../composables/usePackRequest';
 import { parseUrlParameters, updateUrlParameters } from '../../utils/urlParams';
 import { isValidRemoteValue } from '../utils/validation';
@@ -139,6 +139,36 @@ const {
   submitRequest,
   resetOptions,
 } = usePackRequest();
+
+// Check if reset button should be shown
+const shouldShowReset = computed(() => {
+  // Don't show if pack hasn't been executed yet
+  if (!hasExecuted.value) {
+    return false;
+  }
+
+  // Show if there's input URL
+  if (inputUrl.value && inputUrl.value.trim() !== '') {
+    return true;
+  }
+
+  // Show if any pack option differs from default
+  for (const [key, value] of Object.entries(packOptions)) {
+    const defaultValue = DEFAULT_PACK_OPTIONS[key as keyof typeof DEFAULT_PACK_OPTIONS];
+    if (value !== defaultValue) {
+      // For string values, also check if they're not empty
+      if (typeof value === 'string' && typeof defaultValue === 'string') {
+        if (value.trim() !== defaultValue.trim()) {
+          return true;
+        }
+      } else if (value !== defaultValue) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+});
 
 async function handleSubmit() {
   // Update URL parameters before submitting
