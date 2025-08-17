@@ -1,14 +1,10 @@
 # .github/workflows/release-fork.yml
 name: Release Fork Build
 
-# ワークフローのトリガー設定
 on:
-  # 1. 'vX.X.X-momon-fork.X' 形式のタグがプッシュされたときに自動実行
   push:
     tags:
       - "v*.*.*-momon-fork.*"
-
-  # 2. 手動実行 (workflow_dispatch)
   workflow_dispatch:
     inputs:
       tag_name:
@@ -21,37 +17,32 @@ jobs:
     name: Build and Release Fork
     runs-on: ubuntu-latest
     permissions:
-      contents: write # GitHub Releasesを作成するために書き込み権限が必要です
+      contents: write
 
     steps:
-      # ステップ1: リポジトリのコードをチェックアウト
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ステップ2: Node.js環境をセットアップ
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version-file: "package.json"
           cache: "npm"
 
-      # ステップ3: 依存関係をインストール
+      # ステップ3: 依存関係をインストール (npm ci -> npm install に変更)
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
-      # ステップ4: プロジェクトをビルド
       - name: Build project
         run: npm run build
 
-      # ステップ5: リリース用のパッケージを準備
       - name: Prepare production package
         run: |
           mkdir release-package
-          npm ci --omit=dev --prefix ./release-package
+          # 本番用の依存関係のみをインストール (npm ci -> npm install に変更)
+          npm install --omit=dev --prefix ./release-package
           cp -r bin/ lib/ README.md LICENSE package.json release-package/
 
-      # ステップ6: 成果物をZIPアーカイブに圧縮
-      # 手動実行の場合は入力から、タグプッシュの場合はGitの参照からタグ名を取得
       - name: Set Release Tag
         id: set_tag
         run: |
@@ -66,12 +57,10 @@ jobs:
           cd release-package
           zip -r ../repomix-${{ env.TAG_NAME }}.zip .
 
-      # ステップ7: GitHubリリースを作成し、ZIPファイルをアップロード
       - name: Create GitHub Release and Upload Asset
         uses: softprops/action-gh-release@v2
         with:
           files: repomix-${{ env.TAG_NAME }}.zip
-          # タグが存在しない場合は自動で作成してくれる
           tag_name: ${{ env.TAG_NAME }}
           name: Release ${{ env.TAG_NAME }}
           body: |
