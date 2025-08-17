@@ -29,19 +29,20 @@ jobs:
           node-version-file: "package.json"
           cache: "npm"
 
-      # ステップ3: 依存関係をインストール (npm ci -> npm install に変更)
       - name: Install dependencies
         run: npm install
 
       - name: Build project
         run: npm run build
 
+      # ステップ5: リリース用のパッケージを準備 (修正箇所)
       - name: Prepare production package
         run: |
           mkdir release-package
-          # 本番用の依存関係のみをインストール (npm ci -> npm install に変更)
-          npm install --omit=dev --prefix ./release-package
+          # 最初に必要なファイルをコピー
           cp -r bin/ lib/ README.md LICENSE package.json release-package/
+          # コピー先のディレクトリで本番用の依存関係をインストール
+          npm install --omit=dev --prefix ./release-package
 
       - name: Set Release Tag
         id: set_tag
