@@ -2,12 +2,19 @@
 name: Release Fork Build
 
 # ワークフローのトリガー設定
-# 'v'で始まり'-momon-fork.'を含むタグがプッシュされたときに実行されます
-# 例: v1.3.0-momon-fork.1
 on:
+  # 1. 'vX.X.X-momon-fork.X' 形式のタグがプッシュされたときに自動実行
   push:
     tags:
       - "v*.*.*-momon-fork.*"
+
+  # 2. 手動実行 (workflow_dispatch)
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Release Tag (e.g., v1.3.0-momon-fork.1)"
+        required: true
+        type: string
 
 jobs:
   build-and-release:
@@ -22,11 +29,10 @@ jobs:
         uses: actions/checkout@v4
 
       # ステップ2: Node.js環境をセットアップ
-      # package.jsonのenginesフィールドを参照してNode.jsバージョンを設定します
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version-file: "package.json" # package.jsonのengines.nodeを参照
+          node-version-file: "package.json"
           cache: "npm"
 
       # ステップ3: 依存関係をインストール
@@ -34,42 +40,42 @@ jobs:
         run: npm ci
 
       # ステップ4: プロジェクトをビルド
-      # package.jsonの"build"スクリプトを実行します
       - name: Build project
         run: npm run build
 
       # ステップ5: リリース用のパッケージを準備
-      # 成果物と本番用の依存関係だけをクリーンなディレクトリにまとめます
       - name: Prepare production package
         run: |
           mkdir release-package
-          # 本番用の依存関係のみを `release-package/node_modules` にインストールします
           npm ci --omit=dev --prefix ./release-package
-          # package.jsonの"files"にリストされているファイルをコピーします
-          # これにより、リリースに必要なファイルだけが含まれるようになります
           cp -r bin/ lib/ README.md LICENSE package.json release-package/
 
       # ステップ6: 成果物をZIPアーカイブに圧縮
+      # 手動実行の場合は入力から、タグプッシュの場合はGitの参照からタグ名を取得
+      - name: Set Release Tag
+        id: set_tag
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "TAG_NAME=${{ inputs.tag_name }}" >> $GITHUB_ENV
+          else
+            echo "TAG_NAME=${{ github.ref_name }}" >> $GITHUB_ENV
+          fi
+
       - name: Create ZIP archive
         run: |
           cd release-package
-          # ZIPファイル名にタグ名（バージョン）を含めます
-          zip -r ../repomix-${{ github.ref_name }}.zip .
+          zip -r ../repomix-${{ env.TAG_NAME }}.zip .
 
       # ステップ7: GitHubリリースを作成し、ZIPファイルをアップロード
-      # softprops/action-gh-release を使ってリリースを自動作成します
       - name: Create GitHub Release and Upload Asset
         uses: softprops/action-gh-release@v2
         with:
-          # アップロードするファイルを指定します
-          files: repomix-${{ github.ref_name }}.zip
-          # リリースのタイトルをタグ名にします
-          name: Release ${{ github.ref_name }}
-          # リリースノートの本文（必要に応じてカスタマイズしてください）
+          files: repomix-${{ env.TAG_NAME }}.zip
+          # タグが存在しない場合は自動で作成してくれる
+          tag_name: ${{ env.TAG_NAME }}
+          name: Release ${{ env.TAG_NAME }}
           body: |
             This is a custom build from the momon-fork.
             The attached ZIP file contains the built application and its dependencies.
-          # ドラフトではなく、即時公開します
           draft: false
-          # プレリリースではないことを示します（もしプレリリースにしたい場合は true に変更）
           prerelease: false
