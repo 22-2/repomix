@@ -1,3 +1,4 @@
+import path from 'node:path';
 import type { RepomixConfigMerged } from '../config/configSchema.js';
 import { RepomixError } from '../shared/errorHandle.js';
 import { logMemoryUsage, withMemoryLogging } from '../shared/memoryUtils.js';
@@ -94,7 +95,7 @@ export const pack = async (
   const gitDiffResult = await deps.getGitDiffs(rootDirs, config);
 
   // Run security check and get filtered safe files
-  const { safeFilePaths, safeRawFiles, suspiciousFilesResults, suspiciousGitDiffResults } = await withMemoryLogging(
+  const { safeRawFiles, safeFilePaths, suspiciousFilesResults, suspiciousGitDiffResults } = await withMemoryLogging(
     'Security Check',
     () => deps.validateFileSafety(rawFiles, progressCallback, config, gitDiffResult),
   );
@@ -105,9 +106,40 @@ export const pack = async (
     deps.processFiles(safeRawFiles, config, progressCallback),
   );
 
+  // Prefix paths if showRootPath is enabled
+  let finalProcessedFiles = processedFiles;
+  let treeFilePaths = safeFilePaths;
+
+  if (config.output.showRootPath) {
+    const mapPathToRootDir = new Map<string, string>();
+    for (const { rootDir, filePaths: pathsInDir } of filePathsByDir) {
+      for (const filePath of pathsInDir) {
+        mapPathToRootDir.set(filePath, rootDir);
+      }
+    }
+
+    const addPrefix = (p: string): string => {
+      const rootDir = mapPathToRootDir.get(p);
+      if (rootDir) {
+        const relativeRootDir = path.relative(config.cwd, rootDir);
+        // Only add a prefix if the root directory is not the current working directory
+        if (relativeRootDir && relativeRootDir !== '.') {
+          return path.join(relativeRootDir, p);
+        }
+      }
+      return p;
+    };
+
+    treeFilePaths = deps.sortPaths(safeFilePaths.map(addPrefix));
+    finalProcessedFiles = processedFiles.map((file) => ({
+      ...file,
+      path: addPrefix(file.path),
+    }));
+  }
+
   progressCallback('Generating output...');
   const output = await withMemoryLogging('Generate Output', () =>
-    deps.generateOutput(rootDirs, config, processedFiles, safeFilePaths, gitDiffResult),
+    deps.generateOutput(rootDirs, config, finalProcessedFiles, treeFilePaths, gitDiffResult),
   );
 
   progressCallback('Writing output file...');
