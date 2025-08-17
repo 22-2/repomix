@@ -29,6 +29,7 @@ export const repomixConfigBaseSchema = z.object({
       instructionFilePath: z.string().optional(),
       fileSummary: z.boolean().optional(),
       directoryStructure: z.boolean().optional(),
+      showRootPath: z.boolean().optional(),
       files: z.boolean().optional(),
       removeComments: z.boolean().optional(),
       removeEmptyLines: z.boolean().optional(),

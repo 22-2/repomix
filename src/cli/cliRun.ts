@@ -84,6 +84,7 @@ export const run = async () => {
       .option('--output-show-line-numbers', 'add line numbers to each line in the output')
       .option('--no-file-summary', 'disable file summary section output')
       .option('--no-directory-structure', 'disable directory structure section output')
+      .option('--show-root-path', 'Include the specified root directory paths in the directory structure output')
       .option('--no-files', 'disable files content output (metadata-only mode)')
       .option('--remove-comments', 'remove comments')
       .option('--remove-empty-lines', 'remove empty lines')
